@@ -14,16 +14,27 @@ public class DynamicConcurrentArrayList<T> {
 	 */
 	private CopyOnWriteArrayList<T> processed = new CopyOnWriteArrayList<>();
 
-	public void forEach(Consumer<T> op, BiConsumer<T, RuntimeException> ex_op) {
+	public void forEach(Consumer<T> op, BiConsumer<T, Throwable> ex_op) throws Throwable {
+		int last_unprocessed_count = unprocessed.size();
+		Throwable last_ex = null;
 		while (!unprocessed.isEmpty()) {
+			/**
+			 * 如果抛出错误的那次迭代新加入了元素，则忽略上次错误继续迭代新的元素列表。
+			 * 如果没有新元素加入，则将抛出上次迭代记录的错误。
+			 */
+			if (last_unprocessed_count == unprocessed.size())
+				if (last_ex != null)// 第一次进入不会抛出错误
+					throw last_ex;
 			for (T e : unprocessed) {
 				try {
 					op.accept(e);
 					processed.add(e);
-				} catch (RuntimeException ex) {
+				} catch (Throwable ex) {
+					last_unprocessed_count = unprocessed.size();
+					last_ex = ex;
 					ex_op.accept(e, ex);// 执行抛出错误就放弃当前操作继续执行下一个元素的操作
 				}
-			}
+			} // 重新迭代时新加入的元素已经同步到unprocessed
 			unprocessed.removeAll(processed);
 		}
 		CopyOnWriteArrayList<T> tmp = processed;
@@ -31,17 +42,17 @@ public class DynamicConcurrentArrayList<T> {
 		unprocessed = tmp;
 	}
 
-	public static final BiConsumer<Object, RuntimeException> IGNORE_RUNTIME_EXCEPTION = (Object e, RuntimeException ex) -> {
+	public static final BiConsumer<Object, Throwable> IGNORE_RUNTIME_EXCEPTION = (Object e, Throwable ex) -> {
 	};
 
-	public static final BiConsumer<Object, RuntimeException> PRINT_RUNTIME_EXCEPTION = (Object e, RuntimeException ex) -> {
+	public static final BiConsumer<Object, Throwable> PRINT_RUNTIME_EXCEPTION = (Object e, Throwable ex) -> {
 		System.err.println("Iterating element " + e + " throws RuntimeException");
 		ex.printStackTrace();
 	};
 
 	@SuppressWarnings("unchecked")
-	public void forEach(Consumer<T> op) {
-		forEach(op, (BiConsumer<T, RuntimeException>) IGNORE_RUNTIME_EXCEPTION);
+	public void forEach(Consumer<T> op) throws Throwable {
+		forEach(op, (BiConsumer<T, Throwable>) IGNORE_RUNTIME_EXCEPTION);
 	}
 
 	public void add(T e) {

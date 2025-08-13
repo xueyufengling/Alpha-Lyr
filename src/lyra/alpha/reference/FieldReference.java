@@ -2,8 +2,8 @@ package lyra.alpha.reference;
 
 import java.lang.reflect.Field;
 
-import lyra.klass.ObjectManipulator;
 import lyra.lang.Reflection;
+import lyra.object.ObjectManipulator;
 
 /**
  * 用于重定向字段引用的封装工具类
@@ -58,6 +58,16 @@ public class FieldReference implements Recoverable<FieldReference> {
 	@Override
 	public final FieldReference asPrimary() {
 		primaryValue = ObjectManipulator.access(refObjBase, field);
+		return this;
+	}
+
+	public final FieldReference asPrimary(Object primaryValue) {
+		this.primaryValue = primaryValue;
+		return this;
+	}
+
+	public final FieldReference redirectTo(Object redirectRefValue) {
+		this.redirectRefValue = redirectRefValue;
 		return this;
 	}
 

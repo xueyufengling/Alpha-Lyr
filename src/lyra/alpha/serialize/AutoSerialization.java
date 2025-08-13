@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import lyra.klass.ObjectManipulator;
 import lyra.lang.Reflection;
-import lyra.vm.Vm;
+import lyra.object.ObjectManipulator;
+import lyra.vm.internal.VmBase;
 
 /**
  * 序列化和反序列化的自动托管工具
@@ -212,7 +212,7 @@ public class AutoSerialization {
 	}
 
 	protected static void doDeserializeOperationWithMemberFieldRecursively(String ref_name, Object obj) {
-		if (obj == null || Vm.isPrimitiveBoxingType(obj))
+		if (obj == null || VmBase.isPrimitiveBoxingType(obj))
 			return;
 		if (obj instanceof AutoSerializable as)
 			as.onDeserialize(ref_name);

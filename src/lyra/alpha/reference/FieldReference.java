@@ -9,45 +9,20 @@ import lyra.object.ObjectManipulator;
  * 用于重定向字段引用的封装工具类
  */
 public class FieldReference implements Recoverable<FieldReference> {
-	private final Field field;
-	public final Object refObjBase;
-	public final String refName;
-	public Object redirectRefValue;
-	/**
-	 * 原始值
-	 */
-	private Object primaryValue;
+	private Object obj;
+	private Field field;
+	private Object orig;
+	private Object dest;
 
-	private FieldReference(Object refObjBase, String refName, Object redirectRefValue) {
-		this.refObjBase = refObjBase;
-		this.refName = refName;
-		this.redirectRefValue = redirectRefValue;
-		this.field = Reflection.getField(refObjBase, refName);
+	private FieldReference(Object obj, String fieldName, Object dest) {
+		this.obj = obj;
+		this.field = Reflection.getField(obj, fieldName);
+		this.dest = dest;
 		this.asPrimary();
 	}
 
-	private FieldReference(Object refObjBase, String refName) {
-		this(refObjBase, refName, null);
-	}
-
-	public final FieldReference redirect(Object redirectRefValue) {
-		ObjectManipulator.setObject(refObjBase, field, redirectRefValue);
-		return this;
-	}
-
-	@Override
-	public final FieldReference redirect() {
-		return redirect(redirectRefValue);
-	}
-
-	/**
-	 * 恢复到最开始的值
-	 * 
-	 * @return
-	 */
-	@Override
-	public final FieldReference recovery() {
-		return redirect(primaryValue);
+	private FieldReference(Object obj, String fieldName) {
+		this(obj, fieldName, null);
 	}
 
 	/**
@@ -55,24 +30,41 @@ public class FieldReference implements Recoverable<FieldReference> {
 	 * 
 	 * @return
 	 */
-	@Override
-	public final FieldReference asPrimary() {
-		primaryValue = ObjectManipulator.access(refObjBase, field);
+	public FieldReference asPrimary() {
+		orig = ObjectManipulator.access(obj, field);
 		return this;
 	}
 
+	public FieldReference redirect(Object redirectRefValue) {
+		ObjectManipulator.setObject(obj, field, redirectRefValue);
+		return this;
+	}
+
+	public FieldReference redirect() {
+		return redirect(dest);
+	}
+
+	/**
+	 * 恢复到最开始的值
+	 * 
+	 * @return
+	 */
+	public final FieldReference recovery() {
+		return redirect(orig);
+	}
+
 	public final FieldReference asPrimary(Object primaryValue) {
-		this.primaryValue = primaryValue;
+		this.orig = primaryValue;
 		return this;
 	}
 
 	public final FieldReference redirectTo(Object redirectRefValue) {
-		this.redirectRefValue = redirectRefValue;
+		this.dest = redirectRefValue;
 		return this;
 	}
 
-	public final Object value() {
-		return ObjectManipulator.access(refObjBase, field);
+	public final Object realtimeValue() {
+		return ObjectManipulator.access(obj, field);
 	}
 
 	public static final FieldReference of(Object refObjBase, String refName, Object redirectRefValue) {

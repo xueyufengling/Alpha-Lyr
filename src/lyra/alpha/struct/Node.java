@@ -3,10 +3,11 @@ package lyra.alpha.struct;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class Node<K, V> {
-	public K name;
-	public V value;
+	protected K name;
+	protected V value;
 	private Node<K, V> parent = null;
 	private int depth = 1;
 	private HashMap<K, Node<K, V>> children = null;
@@ -66,19 +67,64 @@ public class Node<K, V> {
 		return parent;
 	}
 
+	public Node<K, V> setValue(V value) {
+		this.value = value;
+		return this;
+	}
+
+	public V value() {
+		return value;
+	}
+
 	/**
 	 * 是否有子节点
 	 * 
 	 * @return
 	 */
 	public boolean hasChildren() {
-		return children == null || children.isEmpty();
+		return !(children == null || children.isEmpty());
 	}
 
 	public Node<K, V> getChild(K name) {
 		if (children == null)
 			return null;
 		return children.get(name);
+	}
+
+	/**
+	 * 自底向上遍历
+	 * 
+	 * @param op
+	 */
+	@SuppressWarnings("unchecked")
+	public <N extends Node<K, V>> void traverseChildrenFromBottom(Consumer<N> op) {
+		if (this.hasChildren()) {
+			for (Node<K, V> child : children.values()) {
+				if (child != null)
+					child.traverseChildrenFromBottom(op);
+			}
+		}
+		op.accept((N) this);
+	}
+
+	/**
+	 * 自顶向下遍历
+	 * 
+	 * @param op
+	 */
+	@SuppressWarnings("unchecked")
+	public <N extends Node<K, V>> void traverseChildrenFromTop(Consumer<N> op) {
+		op.accept((N) this);
+		if (this.hasChildren()) {
+			for (Node<K, V> child : children.values()) {
+				if (child != null)
+					child.traverseChildrenFromTop((Consumer<Node<K, V>>) op);
+			}
+		}
+	}
+
+	protected Node<K, V> newNode(K name, Node<K, V> parent) {
+		return new Node<>(name, parent);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -89,10 +135,10 @@ public class Node<K, V> {
 			residual_keys = (K[]) new Object[residual_keys_len];
 			System.arraycopy(names_chain, 1, residual_keys, 0, residual_keys_len);
 		} else
-			return new Node<K, V>(names_chain[0], this);// 最后一个节点
+			return newNode(names_chain[0], this);// 最后一个节点
 		if (children == null || (!children.containsKey(names_chain[0]))) {
 			if (create_if_not_exist)
-				attachChildNode(new Node<K, V>(names_chain[0]));
+				attachChildNode(newNode(names_chain[0], null));
 			else
 				return null;
 		}
